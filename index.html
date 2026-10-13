@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>金玲的工作流 · 中奖公示</title>
+  <style>
+:root {
+  --teal: #0f9b8e;
+  --teal-dark: #0b7d72;
+  --gold: #c9a227;
+  --ink: #222;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --bg: #f6f8f9;
+  --card: #fff;
+  --danger: #d64545;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+}
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--teal); color: #fff;
+  position: sticky; top: 0; z-index: 20;
+}
+.topbar .brand { font-weight: 700; font-size: 16px; cursor: pointer; }
+.topbar .brand small { font-weight: 400; opacity: .85; margin-left: 8px; }
+.topbar .right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.topbar button {
+  background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.4);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px;
+}
+.topbar button:hover { background: rgba(255,255,255,.3); }
+
+.mode-banner {
+  background: #fff7e6; color: #8a6d1a; border-bottom: 1px solid #ffe0a3;
+  padding: 8px 20px; font-size: 13px;
+}
+.mode-banner.cloud { background: #e8f6f3; color: var(--teal-dark); border-bottom-color: #b9e6df; }
+
+.layout { display: flex; max-width: 1180px; margin: 18px auto; padding: 0 16px; gap: 18px; }
+.side-col { width: 220px; flex: 0 0 220px; display: flex; flex-direction: column; }
+.steps { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; align-self: flex-start; width: 100%; box-sizing: border-box; }
+.back-home { display: inline-block; margin: 0 0 10px; padding: 6px 10px; font-size: 13px; color: var(--teal-dark); background: transparent; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: all .15s; }
+.back-home:hover { background: #e8f6f3; border-color: var(--teal); }
+.back-home.hidden { display: none; }
+.steps h3 { margin: 0 0 10px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.step-item { display: flex; align-items: center; gap: 10px; padding: 9px 8px; border-radius: 8px; cursor: pointer; color: var(--muted); }
+.step-item .num { width: 22px; height: 22px; border-radius: 50%; background: #eef1f3; color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 12px; flex: 0 0 22px; }
+.step-item.active { background: #e8f6f3; color: var(--teal-dark); font-weight: 600; }
+.step-item.active .num { background: var(--teal); color: #fff; }
+.step-item.done .num { background: var(--gold); color: #fff; }
+.step-item.done { color: var(--ink); }
+
+.main { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 22px; min-height: 420px; }
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+.panel-title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+.panel-sub { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-weight: 600; margin-bottom: 6px; }
+.field .hint { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+input[type=text], input[type=date], textarea, select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px;
+  font-family: inherit; background: #fff; color: var(--ink);
+}
+textarea { resize: vertical; min-height: 90px; }
+.row2 { display: flex; gap: 12px; }
+.row2 > * { flex: 1; }
+
+.btn {
+  background: var(--teal); color: #fff; border: none; border-radius: 8px;
+  padding: 10px 18px; font-size: 14px; cursor: pointer; font-weight: 600;
+}
+.btn:hover { background: var(--teal-dark); }
+.btn.ghost { background: #fff; color: var(--teal-dark); border: 1px solid var(--teal); }
+.btn.ghost:hover { background: #e8f6f3; }
+.btn.gold { background: var(--gold); }
+.btn.gold:hover { filter: brightness(.95); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.nav-row { display: flex; justify-content: space-between; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+.dropzone {
+  border: 2px dashed var(--line); border-radius: 10px; padding: 28px; text-align: center;
+  color: var(--muted); cursor: pointer; background: #fafbfc;
+}
+.dropzone.drag { border-color: var(--teal); background: #e8f6f3; }
+.file-name { margin-top: 8px; color: var(--teal-dark); font-size: 13px; }
+
+.canvas-wrap { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; text-align: center; }
+canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
+.adjust-row { display: flex; align-items: flex-end; gap: 14px; margin: 14px 0; flex-wrap: wrap; }
+.adjust-row .field { margin-bottom: 0; width: 120px; }
+
+.preview-box { background: #fafbfc; border: 1px solid var(--line); border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+.prefill-box { background: #e8f6f3; border: 1px solid #b9e6df; border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.8; }
+.prefill-box .kv { display: flex; gap: 8px; }
+.prefill-box .kv b { width: 96px; color: var(--teal-dark); flex: 0 0 96px; }
+.tag { display: inline-block; background: #fff; border: 1px solid var(--teal); color: var(--teal-dark); border-radius: 4px; padding: 1px 8px; margin: 2px; font-size: 12px; }
+.banner-danger { background: #fdeaea; color: var(--danger); border: 1px solid #f3c4c4; border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 13px; }
+.banner-ok { background: #e8f6f3; color: var(--teal-dark); border: 1px solid #b9e6df; border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 13px; }
+.sample-rows { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.sample-rows div { padding: 2px 0; }
+.hidden { display: none !important; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ccc; border-top-color: var(--teal); border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -3px; margin-right: 6px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* 设置弹层 */
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 50; }
+.modal-mask.show { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 22px; width: 420px; max-width: 92vw; }
+.modal h3 { margin: 0 0 14px; }
+.modal .field { margin-bottom: 14px; }
+.modal .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+/* 首页（工作流聚合） */
+.home-title-btn {
+  display: inline-block; background: none; border: none; padding: 0;
+  font-size: 26px; font-weight: 700; color: var(--ink);
+  cursor: pointer; font-family: inherit; line-height: 1.2;
+}
+.home-title-btn:hover { color: var(--teal); }
+.home-sub { margin: 14px 0 4px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.skill-card { border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: #fff; cursor: pointer; transition: .15s; }
+.skill-card:hover { border-color: var(--teal); box-shadow: 0 4px 14px rgba(15,155,142,.12); }
+.skill-card.disabled { opacity: .55; cursor: not-allowed; }
+.skill-card .ic { width: 40px; height: 40px; border-radius: 10px; background: var(--teal); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 10px; }
+.skill-card.disabled .ic { background: #cbd5d0; }
+.skill-card h4 { margin: 0 0 6px; font-size: 15px; }
+.skill-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; background: #e8f6f3; color: var(--teal-dark); margin-top: 8px; }
+.badge.soon { background: #f0f0f0; color: #999; }
+
+</style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <div class="topbar">
+    <div class="brand" id="brandHome">金玲的工作流</div>
+    <div class="right">
+      <span id="keyStatus">未绑定 SCRM KEY</span>
+      <button id="btnOpenSettings">⚙ 设置</button>
+    </div>
+  </div>
+
+  <!-- 运行模式提示（本地开发 / 云服务） -->
+  <div id="modeBanner" class="mode-banner">本地开发模式：未连接云服务，KEY 与使用记录仅存于本浏览器。激活 WB 云服务后自动切换。</div>
+
+  <!-- 首页（工作流聚合） -->
+  <div id="home" class="layout">
+    <div style="flex:1">
+      <button id="btnHome" class="home-title-btn" type="button">首页</button>
+      <h3 class="home-sub">工作流一览</h3>
+      <p style="color:var(--muted);margin:0 0 18px">选择要执行的工作流。更多能力持续接入中。</p>
+      <p id="localStat" style="color:var(--muted);font-size:13px;margin:0 0 18px"></p>
+      <div class="home-grid">
+        <div class="skill-card" data-skill="winner">
+          <div class="ic">🎉</div>
+          <h4>中奖名单公示</h4>
+          <p>上传中奖名单 → 自动打码出图 → 编辑文案 → 配置群发 → 一键建任务草稿（仅建不代发）。</p>
+          <span class="badge">已启用</span>
+        </div>
+        <div class="skill-card disabled" data-skill="tuangou">
+          <div class="ic">📊</div>
+          <h4>团购数据统计</h4>
+          <p>收集表去重统计 → 导出 Excel 汇报。</p>
+          <span class="badge soon">规划中</span>
+        </div>
+        <div class="skill-card disabled" data-skill="ship">
+          <div class="ic">📦</div>
+          <h4>发货匹配</h4>
+          <p>审核数据跨表核对 → 匹配中奖商户地址发货。</p>
+          <span class="badge soon">规划中</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 向导 -->
+  <div id="wizard" class="layout hidden">
+    <div class="side-col">
+      <button id="btnBackHome" class="back-home hidden">← 返回首页</button>
+      <div class="steps">
+      <h3>执行步骤</h3>
+      <div class="step-item active" data-step="1"><span class="num">1</span>上传中奖名单</div>
+      <div class="step-item" data-step="2"><span class="num">2</span>生成打码图</div>
+      <div class="step-item" data-step="3"><span class="num">3</span>编辑确认</div>
+      <div class="step-item" data-step="4"><span class="num">4</span>群发配置</div>
+      <div class="step-item" data-step="5"><span class="num">5</span>普洱预填确认</div>
+      <div class="step-item" data-step="6"><span class="num">6</span>创建群发</div>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- 步骤 1 -->
+      <section class="step-panel active" id="panel-1">
+        <h2 class="panel-title">① 上传中奖名单</h2>
+        <p class="panel-sub">支持 xlsx；系统按表头关键词自动识别 姓名/手机/地址/店名/奖项 列。</p>
+        <div class="dropzone" id="dropzone">点击或拖拽 xlsx 文件到此处</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden" />
+        <div class="file-name hidden" id="fileName"></div>
+
+        <div class="row2" style="margin-top:16px">
+          <div class="field">
+            <label>销区 <span class="hint">如 云南·普洱</span></label>
+            <input type="text" id="region" placeholder="云南·普洱" />
+          </div>
+          <div class="field">
+            <label>活动名称 <span class="hint">如 悦尚品吸推荐</span></label>
+            <input type="text" id="activity" placeholder="悦尚品吸推荐" />
+          </div>
+        </div>
+        <div class="field">
+          <label>日期 <span class="hint">默认今天，格式 YYYYMMDD</span></label>
+          <input type="date" id="date" />
+        </div>
+        <div class="field">
+          <label>额外打码需求 <span class="hint">选填，如「奖项列也隐去末位」</span></label>
+          <textarea id="extraMask" placeholder="无特殊需求可留空"></textarea>
+        </div>
+        <div class="nav-row">
+          <span></span>
+          <button class="btn" id="btnRun">运行引擎 →</button>
+        </div>
+      </section>
+
+      <!-- 步骤 2 -->
+      <section class="step-panel" id="panel-2">
+        <h2 class="panel-title">② 生成打码公示图</h2>
+        <p class="panel-sub">以下为打码后的公示图预览（姓名第2字 / 手机后4位 / 地址前50% 已脱敏）。</p>
+        <div class="canvas-wrap"><canvas id="previewCanvas"></canvas></div>
+        <div class="adjust-row">
+          <div class="field"><label>字号</label><input type="number" id="fontSize" value="22" min="14" max="40" /></div>
+          <div class="field"><label>内边距</label><input type="number" id="padding" value="12" min="4" max="30" /></div>
+          <button class="btn ghost" id="btnReRender" style="align-self:flex-end">重新渲染</button>
+          <button class="btn ghost" id="btnDownloadPng" style="align-self:flex-end">下载 PNG</button>
+        </div>
+        <div class="sample-rows" id="sampleRows"></div>
+        <div class="nav-row">
+          <button class="btn ghost" data-prev="1">← 上一步</button>
+          <button class="btn" data-next="3">下一步 →</button>
+        </div>
+      </section>
+
+      <!-- 步骤 3 -->
+      <section class="step-panel" id="panel-3">
+        <h2 class="panel-title">③ 编辑通知文案</h2>
+        <p class="panel-sub">文案已按「达标公示」模板自动填充，可直接修改；确认无误后进入下一步。</p>
+        <div class="field">
+          <label>通知文案</label>
+          <textarea id="copyText" style="min-height:200px"></textarea>
+        </div>
+        <div class="nav-row">
+          <button class="btn ghost" data-prev="2">← 上一步</button>
+          <button class="btn" data-next="4">文案已确认，下一步 →</button>
+        </div>
+      </section>
+
+      <!-- 步骤 4 -->
+      <section class="step-panel" id="panel-4">
+        <h2 class="panel-title">④ 群发配置</h2>
+        <p class="panel-sub">填写执行员工与标签；也可上传截图，由 AI 识别（选填，文字填写同样支持）。</p>
+        <div class="row2">
+          <div class="field"><label>执行员工部门</label><input type="text" id="execDept" placeholder="如 云南" /></div>
+          <div class="field"><label>执行员工姓名</label><input type="text" id="execName" placeholder="如 张玉磊" /></div>
+        </div>
+        <div class="field">
+          <label>标签配置 <span class="hint">如 普洱市/思茅区… ，排除 中山商户</span></label>
+          <textarea id="tagsInput" placeholder="一行一个标签，前缀「-」表示排除，如：&#10;普洱市&#10;-中山商户"></textarea>
+        </div>
+        <div class="field">
+          <label>截图识别 <span class="hint">选填</span></label>
+          <div class="dropzone" id="shotDropzone" style="padding:16px">点击或拖拽「执行人/标签」截图</div>
+          <input type="file" id="screenshotInput" accept="image/*" class="hidden" />
+          <div style="margin-top:8px"><button class="btn ghost" id="btnRecognize">识别截图</button> <span id="recogStatus" style="color:var(--muted);font-size:13px"></span></div>
+        </div>
+        <div class="nav-row">
+          <button class="btn ghost" data-prev="3">← 上一步</button>
+          <button class="btn" data-next="5">下一步 →</button>
+        </div>
+      </section>
+
+      <!-- 步骤 5 -->
+      <section class="step-panel" id="panel-5">
+        <h2 class="panel-title">⑤ 普洱市场自动预填</h2>
+        <p class="panel-sub">若系统判定为「普洱市场」，将自动预填群发范围（绑定李玲账号的业务标签）。</p>
+        <div id="prefillBox" class="prefill-box hidden"></div>
+        <div id="nonPuerTip" class="preview-box hidden">未识别为普洱市场，将使用你在第④步手动填写的配置。其他销区首次跑通后会自动沉淀为范围档案。</div>
+        <div class="nav-row">
+          <button class="btn ghost" data-prev="4">← 上一步</button>
+          <button class="btn" data-next="6">确认预填，下一步 →</button>
+        </div>
+      </section>
+
+      <!-- 步骤 6 -->
+      <section class="step-panel" id="panel-6">
+        <h2 class="panel-title">⑥ 创建群发任务</h2>
+        <p class="panel-sub">以下为将创建的任务摘要。默认定时次日 12:00，仅建草稿不代发。</p>
+        <div id="summaryBox" class="preview-box"></div>
+        <div class="banner-danger">⚠️ 合规红线：系统仅创建群发任务草稿（定时次日 12:00），绝不直接发送。请在你自己的微盛后台审核后再推出。</div>
+        <div id="createResult"></div>
+        <div class="nav-row">
+          <button class="btn ghost" data-prev="5">← 上一步</button>
+          <button class="btn gold" id="btnCreate">创建群发任务</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- 设置弹层 -->
+  <div class="modal-mask" id="settingsModal">
+    <div class="modal">
+      <h3>绑定我的微盛 SCRM KEY</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:0">每个使用者使用自己的 KEY，平台不共用、不暴露他人的凭证。</p>
+      <div class="field">
+        <label>SCRM APP KEY</label>
+        <input type="text" id="scrmKey" placeholder="粘贴你的微盛开放平台 APP KEY" />
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="btnCloseSettings">取消</button>
+        <button class="btn" id="btnSaveKey">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 依赖（CDN，失败时 app.js 自动降级到本地模式） -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+/*
+ * 中奖名单公示 · 浏览器端引擎（JS 移植自 redact_render.py）
+ * ---------------------------------------------------------
+ * 职责：列自动识别 / 三条打码规则 / 通知文案 / Canvas 表格图渲染。
+ * 不依赖任何后端，纯浏览器运行；同时可在 node 下被 require 做单测。
+ *
+ * 与 Python 引擎的对应关系（规则必须完全一致，改动需用户确认）：
+ *   mask_name  : 第 2 字打码       张伟→张*  欧阳娜→欧*娜
+ *   mask_phone : 后 4 位打码       13812345678→1381234****
+ *   mask_address: 保留前 50% 字符   其余打码（奇数长度 floor(50%)）
+ *   build_copy : 达标公示模板
+ */
+(function (global) {
+  'use strict';
+
+  const KEYWORDS = {
+    name: ['姓名', '名字', '客户名', '中奖人', '联系人'],
+    phone: ['手机', '电话', '号码'],
+    addr: ['地址', '收货', '邮寄'],
+    award: ['奖项', '奖品', '奖励', '中奖名称'],
+    shop: ['店名', '店铺', '门店', '商户名', '商户'],
+  };
+
+  // 列自动识别：返回各字段在表头中的下标（从 0 计），未识别为 null
+  function detectColumns(headers) {
+    function find(kws) {
+      for (let i = 0; i < headers.length; i++) {
+        const h = String(headers[i] == null ? '' : headers[i]).trim();
+        for (const k of kws) {
+          if (h.includes(k)) return i;
+        }
+      }
+      return null;
+    }
+    return {
+      name: find(KEYWORDS.name),
+      phone: find(KEYWORDS.phone),
+      addr: find(KEYWORDS.addr),
+      award: find(KEYWORDS.award),
+      shop: find(KEYWORDS.shop),
+    };
+  }
+
+  function maskName(s) {
+    s = String(s == null ? '' : s).trim();
+    if (s.length < 2) return s;
+    return s[0] + '*' + s.slice(2);
+  }
+
+  function maskPhone(s) {
+    s = String(s == null ? '' : s).trim();
+    if (s.length >= 4) return s.slice(0, s.length - 4) + '****';
+    if (s.length > 0) return s[0] + '*'.repeat(s.length - 1);
+    return s;
+  }
+
+  function maskAddress(s) {
+    s = String(s == null ? '' : s).trim();
+    const n = s.length;
+    if (n === 0) return s;
+    const keep = Math.max(1, Math.floor(n * 0.5)); // 保留前 50%，奇数 floor
+    return s.slice(0, keep) + '*'.repeat(n - keep);
+  }
+
+  function clean(s) {
+    return String(s == null ? '' : s).replace(/\r/g, '').replace(/\n/g, '');
+  }
+
+  // 通知文案（达标公示模板），自动填 月/活动/户数
+  function buildCopy(region, activity, date, count) {
+    const month = date && date.length >= 6 ? String(parseInt(date.slice(4, 6), 10)) : '';
+    const act = (activity || '').replace(/20\d{2}[.\-/年]\d{1,2}月?/g, '').trim() || activity;
+    return (
+      '🔔 活动中奖公示\n\n' +
+      `老板，${month}月${act}活动结束，我们已完成审核。\n\n` +
+      '审核通过的商户，我们将尽快为您邮寄礼品！🎁\n\n' +
+      `✅ 共${count}户达标，完整审核名单见图片，点击左下角"下载"可查看高清图。\n\n` +
+      '——————————\n\n' +
+      '未达标商户不要气馁，我们将不定期开展活动，期待您的下次参与！🤝'
+    );
+  }
+
+  /*
+   * 由二维原始数据生成打码后的行 + 列顺序。
+   * rawRows: 数组，rawRows[0] 为表头，其余为数据行。
+   * override: 可选的手动列号（从 1 计）{nameCol,phoneCol,addrCol,awardCol,shopCol}
+   * 返回 { cols: [...], rows: [{序号,店名?,姓名,手机号,收货地址,奖项?}] }
+   */
+  function buildRows(rawRows, override) {
+    if (!rawRows || rawRows.length < 2) return { cols: ['序号', '姓名', '手机号', '收货地址'], rows: [] };
+    const headers = rawRows[0];
+    let { name, phone, addr, award, shop } = detectColumns(headers);
+    if (override) {
+      if (override.nameCol != null) name = override.nameCol - 1;
+      if (override.phoneCol != null) phone = override.phoneCol - 1;
+      if (override.addrCol != null) addr = override.addrCol - 1;
+      if (override.awardCol != null) award = override.awardCol - 1;
+      if (override.shopCol != null) shop = override.shopCol - 1;
+    }
+
+    const cols = ['序号'];
+    if (shop != null) cols.push('店名');
+    cols.push('姓名', '手机号', '收货地址');
+    if (award != null) cols.push('奖项');
+
+    const rows = [];
+    for (let i = 1; i < rawRows.length; i++) {
+      const r = rawRows[i];
+      const get = (idx) => (idx != null && idx < r.length ? r[idx] : null);
+      rows.push({
+        序号: i,
+        店名: shop != null ? clean(get(shop)) : '-',
+        姓名: name != null ? maskName(get(name)) : '-',
+        手机号: phone != null ? maskPhone(get(phone)) : '-',
+        收货地址: addr != null ? maskAddress(get(addr)) : '-',
+        奖项: award != null ? clean(get(award)) : '-',
+      });
+    }
+    return { cols, rows, detected: { name, phone, addr, award, shop } };
+  }
+
+  /*
+   * Canvas 渲染打码表格图（替代 PIL 出图）。
+   * canvas: HTMLCanvasElement；data: buildRows 的返回值；opts: {fontSize,padding,title}
+   */
+  function renderTable(canvas, data, opts) {
+    opts = opts || {};
+    const fontSize = opts.fontSize || 22;
+    const pad = opts.padding != null ? opts.padding : 12;
+    const title = opts.title || '';
+    const headerFont = `${fontSize + 4}px 'PingFang SC','Microsoft YaHei',sans-serif`;
+    const bodyFont = `${fontSize}px 'PingFang SC','Microsoft YaHei',sans-serif`;
+    const lineH = fontSize + 8;
+    const addrMaxW = 520;
+    const cols = data.cols;
+    const rows = data.rows;
+
+    const ctx = canvas.getContext('2d');
+    ctx.font = bodyFont;
+    const measure = (font, t) => {
+      ctx.font = font;
+      return ctx.measureText(String(t)).width;
+    };
+
+    const widths = {};
+    cols.forEach((c) => (widths[c] = 0));
+    widths['收货地址'] = addrMaxW;
+    widths['序号'] = measure(headerFont, '序号') + pad * 2;
+    // 表头宽度也要计入
+    cols.forEach((c) => (widths[c] = Math.max(widths[c], measure(headerFont, c) + pad * 2)));
+
+    function wrap(text, font, maxW) {
+      text = clean(text);
+      const lines = [];
+      let cur = '';
+      for (const ch of text) {
+        if (ctx.measureText(cur + ch).width <= maxW) cur += ch;
+        else {
+          lines.push(cur);
+          cur = ch;
+        }
+      }
+      if (cur) lines.push(cur);
+      return lines.length ? lines : [''];
+    }
+
+    const cellLines = [];
+    rows.forEach((r) => {
+      const lm = {};
+      cols.forEach((c) => {
+        let lines;
+        if (c === '收货地址') lines = wrap(r[c], bodyFont, addrMaxW - pad * 2);
+        else lines = [String(r[c] == null ? '' : r[c])];
+        lm[c] = lines;
+        const w = Math.max.apply(null, lines.map((l) => measure(bodyFont, l))) + pad * 2;
+        widths[c] = Math.max(widths[c], w);
+      });
+      cellLines.push(lm);
+    });
+
+    const totalW = Math.round(cols.reduce((s, c) => s + widths[c], 0)) + 2;
+    const rowHeights = cellLines.map((lm) => Math.max.apply(null, cols.map((c) => lm[c].length)) * lineH + pad * 2);
+    const headerH = 40;
+    const titleH = title ? 50 : 0;
+    const totalH = titleH + headerH + rowHeights.reduce((a, b) => a + b, 0) + 2;
+
+    canvas.width = totalW;
+    canvas.height = totalH;
+
+    // 调整尺寸会重置上下文，重新取并绘制
+    const c = canvas.getContext('2d');
+    c.textBaseline = 'middle';
+    c.fillStyle = 'white';
+    c.fillRect(0, 0, totalW, totalH);
+
+    let y = 1;
+    if (title) {
+      c.fillStyle = '#F2F2F2';
+      c.fillRect(1, 1, totalW - 1, titleH);
+      c.strokeStyle = '#999999';
+      c.strokeRect(1, 1, totalW - 1, titleH);
+      c.fillStyle = '#222222';
+      c.font = headerFont;
+      c.textBaseline = 'middle';
+      c.fillText(title, pad, titleH / 2 + 1);
+      y = titleH + 1;
+    }
+
+    // 表头
+    let x = 1;
+    cols.forEach((col) => {
+      c.fillStyle = '#E8E8E8';
+      c.fillRect(x, y, widths[col], headerH);
+      c.strokeStyle = '#999999';
+      c.strokeRect(x, y, widths[col], headerH);
+      c.fillStyle = '#222222';
+      c.font = headerFont;
+      c.textBaseline = 'middle';
+      c.fillText(col, x + pad, y + headerH / 2);
+      x += widths[col];
+    });
+    y += headerH;
+
+    // 数据行
+    cellLines.forEach((lm, ri) => {
+      x = 1;
+      const rh = rowHeights[ri];
+      cols.forEach((col) => {
+        c.strokeStyle = '#CCCCCC';
+        c.strokeRect(x, y, widths[col], rh);
+        c.fillStyle = 'white';
+        c.fillRect(x + 1, y + 1, widths[col] - 2, rh - 2);
+        c.fillStyle = '#222222';
+        c.font = bodyFont;
+        c.textBaseline = 'top';
+        let ty = y + pad;
+        lm[col].forEach((ln) => {
+          c.fillText(ln, x + pad, ty);
+          ty += lineH;
+        });
+        x += widths[col];
+      });
+      y += rh;
+    });
+    return canvas;
+  }
+
+  const API = {
+    KEYWORDS,
+    detectColumns,
+    maskName,
+    maskPhone,
+    maskAddress,
+    buildCopy,
+    buildRows,
+    renderTable,
+  };
+
+  global.WinnerEngine = API;
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+/*
+ * 中奖公示向导 · 前端串联逻辑
+ * ------------------------------------------------------------
+ * 步骤：上传 → 出图 → 编辑 → 配置(含截图识别) → 普洱预填 → 创建群发。
+ * 后端策略：优先使用 WB cloud-service（若部署时注入了 publicConfig），
+ *          否则降级到「本地开发模式」（KEY/使用记录存浏览器 localStorage）。
+ *          两种模式都在界面与代码里明示，绝不在用户不知情时假装云端可用。
+ */
+(function () {
+  'use strict';
+
+  // ----------------------------- 全局状态 -----------------------------
+  const state = {
+    rawRows: null,        // 二维数组：表头 + 数据
+    region: '',
+    activity: '',
+    date: '',
+    extraMask: '',
+    built: null,          // engine.buildRows 结果
+    copy: '',
+    fontSize: 22,
+    padding: 12,
+    execDept: '',
+    execName: '',
+    tags: [],             // [{name, exclude}]
+    isPuer: false,
+    prefill: null,
+    key: '',
+  };
+
+  // 普洱范围档案（绑定李玲账号，来源 SKILL.md；其他使用者用各自 KEY 时无此标签，需自配）
+  const PUER = {
+    label: '云南·普洱',
+    execUserId: 'woDkH9EAAAcPy4fBRl7CBJOsOQNwk2Yw',
+    execName: '张玉磊',
+    include: ['普洱市', '思茅区', '宁洱县', '墨江县', '景东县', '景谷县', '镇沅县', '江城县', '孟连县', '澜沧县', '西盟县'],
+    exclude: ['中山商户'],
+    strategyId: '2010633503742271553',
+    strategyName: '云南-大理普洱',
+    templateType: 4,
+  };
+
+  // 微盛 SCRM 接口（部署时填入真实 base；本地模式无 base 时创建按钮会提示）
+  const SCRM = {
+    API_BASE: '', // TODO(部署): 填入微盛开放平台真实 base 或 wshoto-open 代理地址
+    uploadImage: '/bff/content/private/h5/material/uploadImage', // 占位，待拼接 base
+    createMaterial: '/bff/content/private/h5/material/create',
+    addTask: '/bff/marketing/private/h5/groupmsg/task/add',
+  };
+
+  // ----------------------------- 存储适配（云 / 本地） -----------------------------
+  // Supabase 云端存储配置（publishable key 为前端公开 key，可安全内置于此）
+  const SUPABASE_URL = 'https://njpgbzwmrjblsvjijn.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_9xBfMdyHx0Kp5hQA3u4ZZg_e-avKwVK';
+
+  const Store = (function () {
+    let cloud = null;          // WorkBuddyCloud 客户端（激活后）
+    let sb = null;             // Supabase 客户端（激活后）
+    let mode = 'local';        // 'cloud' | 'local'
+    let backend = 'local';     // 'supabase' | 'wbcloud' | 'local'
+    const LS_KEY_KEY = 'winner.scrmKey';
+    const LS_USAGE = 'winner.usageLog';
+    const LS_DEVICE = 'winner.deviceId';
+
+    function init() {
+      if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+        try {
+          sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          mode = 'cloud'; backend = 'supabase';
+        } catch (e) { mode = 'local'; backend = 'local'; }
+      }
+      if (mode === 'local') {
+        const pc = window.__WB_PUBLIC_CONFIG__;
+        if (pc && window.WorkBuddyCloud) {
+          try {
+            cloud = window.WorkBuddyCloud.createWorkBuddyCloud({
+              endpoint: pc.endpoint,
+              oauthRelayBaseUrl: pc.oauthRelayBaseUrl,
+              publishableKey: pc.publishableKey,
+            });
+            mode = 'cloud'; backend = 'wbcloud';
+          } catch (e) { mode = 'local'; backend = 'local'; }
+        }
+      }
+      return mode;
+    }
+
+    async function getKey() {
+      if (mode === 'cloud' && cloud) {
+        // 每用户 KEY 加密存云（use_credential 表），此处从云取回
+        try {
+          const db = cloud.database();
+          const rec = await db.from('user_credential').select('*').eq('user_id', await currentUid()).single();
+          return rec && rec.scrm_key_encrypted ? rec.scrm_key_encrypted : '';
+        } catch (e) { return ''; }
+      }
+      return localStorage.getItem(LS_KEY_KEY) || '';
+    }
+    async function saveKey(k) {
+      state.key = k;
+      if (mode === 'cloud' && cloud) {
+        try {
+          const db = cloud.database();
+          await db.from('user_credential').upsert({ user_id: await currentUid(), scrm_key_encrypted: k });
+          return;
+        } catch (e) { /* 落本地兜底 */ }
+      }
+      localStorage.setItem(LS_KEY_KEY, k);
+    }
+    async function hashStr(s) {
+      try {
+        if (window.crypto && crypto.subtle) {
+          const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+          return 'k' + Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+      } catch (e) { /* 回退简单哈希 */ }
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+      return 'k' + (h >>> 0).toString(16);
+    }
+
+    async function currentUid() {
+      if (mode === 'cloud' && sb) {
+        const key = localStorage.getItem(LS_KEY_KEY) || '';
+        if (key) return await hashStr(key); // 已绑定 SCRM KEY：同 KEY 跨设备计为同一人
+        let id = localStorage.getItem(LS_DEVICE); // 未绑定 KEY 的用户退化为按设备
+        if (!id) {
+          id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('d' + Date.now() + Math.random().toString(16).slice(2));
+          localStorage.setItem(LS_DEVICE, id);
+        }
+        return id;
+      }
+      if (mode === 'cloud' && cloud) {
+        try {
+          const { data: session } = await cloud.auth.getSession();
+          if (session && session.user && session.user.id) return session.user.id;
+        } catch (e) { /* 未登录时回退 */ }
+        return 'anon';
+      }
+      return 'local';
+    }
+    async function logUsage(entry) {
+      const row = Object.assign({ ts: new Date().toISOString(), uid: await currentUid(), skill: 'winner' }, entry);
+      if ('count' in row) { row.cnt = row.count; delete row.count; } // 列名 cnt，避免与 SQL count 函数冲突
+      if (mode === 'cloud' && sb) {
+        try { await sb.from('usage_log').insert(row); return; } catch (e) { /* 落本地兜底 */ }
+      }
+      if (mode === 'cloud' && cloud) {
+        try { await cloud.database().from('usage_log').insert(row); return; } catch (e) { /* 落本地兜底 */ }
+      }
+      const arr = JSON.parse(localStorage.getItem(LS_USAGE) || '[]');
+      arr.push(row);
+      localStorage.setItem(LS_USAGE, JSON.stringify(arr));
+    }
+    // 截图识别（仅云端免密钥 LLM 支持）
+    async function visionRecognize(dataUrl) {
+      if (mode !== 'cloud' || !cloud) {
+        return { ok: false, reason: 'local', msg: '本地开发模式不支持截图识别，请直接文字填写（激活 WB 云服务后可用）。' };
+      }
+      try {
+        // 1) 拉模型列表，挑 Hy3（WB 默认模型），禁用模型不选；禁止硬编码 model id
+        const models = await cloud.llm.models.list();
+        const list = models || [];
+        let model = list.find((m) => /hy3/i.test((m.id || m.name || '') + '') && m.disabled !== true)
+                || list.find((m) => m.disabled !== true);
+        if (!model) {
+          return { ok: false, reason: 'nomodel', msg: '当前应用无可用模型，请在 WB 云端管理开启 LLM。' };
+        }
+        // 2) 流式调用（cloud-service 仅支持 stream:true，且必须带 system 消息）
+        let answer = '';
+        for await (const chunk of cloud.llm.chat.completions.create({
+          model: model.id,
+          messages: [
+            { role: 'system', content: '你是表单识别助手。从截图中提取：执行员工部门、执行员工姓名、标签列表（含排除项）。仅输出 JSON：{dept,name,tags:[{name,exclude}]}。' },
+            { role: 'user', content: [{ type: 'image_url', image_url: { url: dataUrl } }] },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+        })) {
+          const delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
+          if (delta && delta.content) answer += delta.content;
+        }
+        return { ok: true, data: JSON.parse(answer) };
+      } catch (e) {
+        return { ok: false, reason: 'err', msg: '识别失败：' + (e && e.message ? e.message : String(e)) };
+      }
+    }
+
+    return {
+      init, getKey, saveKey, logUsage, visionRecognize,
+      getMode: () => mode,
+      getBackend: () => backend,
+      getUsage: () => { try { return JSON.parse(localStorage.getItem(LS_USAGE) || '[]'); } catch (e) { return []; } },
+      getStats: async () => {
+        if (mode === 'cloud' && sb) {
+          try {
+            const { data } = await sb.rpc('usage_stats');
+            if (data) return { total: data.total || 0, users: data.users || 0 };
+          } catch (e) { /* 忽略，回落本地 */ }
+        }
+        return null;
+      },
+    };
+  })();
+
+  // ----------------------------- DOM 工具 -----------------------------
+  const $ = (id) => document.getElementById(id);
+  function show(el) { el.classList.remove('hidden'); }
+  function hide(el) { el.classList.add('hidden'); }
+  function setBanner() {
+    const b = $('modeBanner');
+    if (Store.getMode() === 'cloud') {
+      b.className = 'mode-banner cloud';
+      b.textContent = Store.getBackend() === 'supabase'
+        ? '云端模式：已连接 Supabase，使用统计（次数 / 人数）安全存于云端、跨设备共享。'
+        : '云服务模式：已连接 WB 云服务，KEY 与使用记录安全存于云端（按用户隔离）。';
+    } else {
+      b.className = 'mode-banner';
+      b.textContent = '本地开发模式：未连接云端，KEY 与使用记录仅存于本浏览器。填入 Supabase 配置后自动切换云端。';
+    }
+  }
+
+  // ----------------------------- 视图切换 -----------------------------
+  function goHome() { hide($('wizard')); show($('home')); hide($('btnBackHome')); }
+  function goWizard() { hide($('home')); show($('wizard')); show($('btnBackHome')); }
+
+  // 步骤切换
+  function gotoStep(n) {
+    document.querySelectorAll('.step-panel').forEach((p) => p.classList.remove('active'));
+    $('panel-' + n).classList.add('active');
+    document.querySelectorAll('.step-item').forEach((it) => {
+      const s = +it.dataset.step;
+      it.classList.toggle('active', s === n);
+      it.classList.toggle('done', s < n);
+    });
+    state._step = n;
+  }
+
+  // ----------------------------- 步骤 1：上传 + 解析 -----------------------------
+  function bindFileInput() {
+    const dz = $('dropzone');
+    const input = $('fileInput');
+    dz.addEventListener('click', () => input.click());
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+    input.addEventListener('change', () => { if (input.files[0]) handleFile(input.files[0]); });
+  }
+  function handleFile(file) {
+    $('fileName').textContent = '已选择：' + file.name;
+    show($('fileName'));
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        state.rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        $('btnRun').disabled = false;
+      } catch (err) {
+        alert('解析失败：' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ----------------------------- 运行引擎（步骤 2 出图 + 步骤 3 文案） -----------------------------
+  function runEngine() {
+    if (!state.rawRows) { alert('请先上传名单'); return; }
+    state.region = $('region').value.trim() || '销区';
+    state.activity = $('activity').value.trim() || '活动';
+    state.date = ($('date').value || '').replace(/-/g, '') || ymd();
+    state.extraMask = $('extraMask').value.trim();
+
+    state.built = WinnerEngine.buildRows(state.rawRows, null);
+    // 渲染画布
+    state.fontSize = +$('fontSize').value || 22;
+    state.padding = +$('padding').value || 12;
+    renderCanvas();
+    // 文案
+    state.copy = WinnerEngine.buildCopy(state.region, state.activity, state.date, state.built.rows.length);
+    $('copyText').value = state.copy;
+    // 抽样核对
+    const sr = $('sampleRows');
+    sr.innerHTML = '<b>抽样核对（打码后）：</b>';
+    state.built.rows.slice(0, 3).forEach((r) => {
+      const d = document.createElement('div');
+      d.textContent = `${r['姓名']} | ${r['手机号']} | ${r['收货地址']}`;
+      sr.appendChild(d);
+    });
+    Store.logUsage({ step: 'run', count: state.built.rows.length });
+    renderStats();
+    gotoStep(2);
+  }
+  function renderCanvas() {
+    const canvas = $('previewCanvas');
+    const title = `${state.activity} · ${state.region} 中奖公示（已打码）`;
+    WinnerEngine.renderTable(canvas, state.built, { fontSize: state.fontSize, padding: state.padding, title });
+  }
+  function downloadPng() {
+    const canvas = $('previewCanvas');
+    canvas.toBlob((blob) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state.region}_${state.activity}_${state.date}_打码公示图.png`;
+      a.click();
+    });
+  }
+
+  // ----------------------------- 步骤 4：配置 + 截图识别 -----------------------------
+  function parseTags(text) {
+    return text.split('\n').map((s) => s.trim()).filter(Boolean).map((s) => {
+      if (s.startsWith('-')) return { name: s.slice(1).trim(), exclude: true };
+      return { name: s, exclude: false };
+    });
+  }
+  async function recognizeShot() {
+    const input = $('screenshotInput');
+    const status = $('recogStatus');
+    if (!input.files[0]) { status.textContent = '请先上传截图'; return; }
+    status.innerHTML = '<span class="spinner"></span>识别中…';
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    const r = await Store.visionRecognize(dataUrl);
+    if (!r.ok) { status.textContent = r.msg; return; }
+    if (r.data.dept) $('execDept').value = r.data.dept;
+    if (r.data.name) $('execName').value = r.data.name;
+    if (Array.isArray(r.data.tags)) $('tagsInput').value = r.data.tags.map((t) => (t.exclude ? '-' : '') + t.name).join('\n');
+    status.textContent = '识别完成 ✓';
+  }
+
+  // ----------------------------- 步骤 5：普洱自动预填 -----------------------------
+  function detectPuer() {
+    state.execDept = $('execDept').value.trim();
+    state.execName = $('execName').value.trim();
+    state.tags = parseTags($('tagsInput').value);
+    const txt = (state.region + state.execName + state.execDept + JSON.stringify(state.tags)).toLowerCase();
+    const hit = txt.includes('普洱') || state.execName === PUER.execName ||
+      state.tags.some((t) => PUER.include.includes(t.name) || t.name.includes('普洱'));
+    state.isPuer = hit;
+    const box = $('prefillBox');
+    const tip = $('nonPuerTip');
+    if (hit) {
+      state.prefill = PUER;
+      show(box); hide(tip);
+      box.innerHTML =
+        `<div class="kv"><b>判定</b><span>识别为「普洱市场」，自动预填（仅李玲账号有效）</span></div>` +
+        `<div class="kv"><b>执行员工</b><span>${PUER.execName}（${PUER.execUserId}）</span></div>` +
+        `<div class="kv"><b>包含标签</b><span>${PUER.include.map((t) => `<span class="tag">${t}</span>`).join('')}</span></div>` +
+        `<div class="kv"><b>排除标签</b><span>${PUER.exclude.map((t) => `<span class="tag">-${t}</span>`).join('')}</span></div>` +
+        `<div class="kv"><b>发送方式</b><span>通知员工转发（templateType=4）</span></div>` +
+        `<div class="kv"><b>定时</b><span>次日 12:00（仅建草稿，不代发）</span></div>`;
+    } else {
+      state.prefill = null; hide(box); show(tip);
+    }
+  }
+
+  // ----------------------------- 步骤 6：创建群发 -----------------------------
+  function buildSummary() {
+    const eff = state.isPuer ? state.prefill : null;
+    const execName = eff ? eff.execName : state.execName;
+    const tags = eff ? eff.include.map((t) => ({ name: t, exclude: false })).concat(eff.exclude.map((t) => ({ name: t, exclude: true }))) : state.tags;
+    const s = $('summaryBox');
+    s.innerHTML =
+      `<div><b>销区：</b>${state.region}　<b>活动：</b>${state.activity}　<b>日期：</b>${state.date}</div>` +
+      `<div><b>达标户数：</b>${state.built.rows.length}</div>` +
+      `<div><b>执行员工：</b>${state.execDept ? state.execDept + ' / ' : ''}${execName || '（未填）'}</div>` +
+      `<div><b>标签：</b>${tags.map((t) => `<span class="tag">${t.exclude ? '-' : ''}${t.name}</span>`).join('') || '（无）'}</div>` +
+      `<div><b>发送方式：</b>通知员工转发（templateType=4）</div>` +
+      `<div><b>定时：</b>次日 12:00（仅建草稿）</div>`;
+    return { execName, tags, eff };
+  }
+  async function createGroupMessage() {
+    const key = await Store.getKey();
+    if (!key) { alert('请先在右上角「设置」中绑定你的 SCRM KEY。'); return; }
+    if (!SCRM.API_BASE) {
+      alert('当前为本地开发模式且未配置微盛 API 地址。请在部署（WB 云服务发布）时填入微盛开放平台 base，或在此文件 SCRM.API_BASE 配置后重试。');
+      return;
+    }
+    const sum = buildSummary();
+    const sendTime = nextNoon();
+    const body = {
+      templateType: 4, source: 1, sendSelf: 0, delaySend: 1,
+      sendTime,
+      endTime: addDays(sendTime, 7),
+      content: { plainText: state.copy.slice(0, 1024) },
+      sendRangeCondition: { filterType: 'StaffSend2Customer', staffSend2CustomerCondition: { addUserRange: { userIdList: [sum.eff ? sum.eff.execUserId : ''] } } },
+      // 标签条件待补全（普洱从 getList 取真实 tagId；其余销区需先查询）
+    };
+    try {
+      const res = await fetch(SCRM.API_BASE + SCRM.addTask, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify(body),
+      });
+      const j = await res.json();
+      $('createResult').innerHTML = `<div class="banner-ok">✅ 已创建群发任务草稿（taskId=${j.templateId || '—'}）。请到你的微盛后台审核后推出。</div>`;
+      Store.logUsage({ step: 'create', task: j.templateId || '' });
+      renderStats();
+    } catch (e) {
+      $('createResult').innerHTML = `<div class="banner-danger">创建失败：${e.message}（可能因浏览器跨域被拦截；生产由 WB 云端代理发送可规避）。</div>`;
+    }
+  }
+
+  // ----------------------------- 小工具 -----------------------------
+  function ymd() { const d = new Date(); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); }
+  function nextNoon() { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(12, 0, 0, 0); return d.getTime(); }
+  function addDays(ts, n) { return ts + n * 86400000; }
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  // ----------------------------- 设置面板 -----------------------------
+  function bindSettings() {
+    $('btnOpenSettings').addEventListener('click', () => { $('scrmKey').value = state.key; $('settingsModal').classList.add('show'); });
+    $('btnCloseSettings').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+    $('btnSaveKey').addEventListener('click', async () => {
+      const k = $('scrmKey').value.trim();
+      await Store.saveKey(k);
+      $('keyStatus').textContent = k ? '已绑定 SCRM KEY' : '未绑定 SCRM KEY';
+      $('settingsModal').classList.remove('show');
+    });
+  }
+
+  // ----------------------------- 绑定 -----------------------------
+  function bindAll() {
+    $('brandHome').addEventListener('click', goHome);
+    $('btnHome').addEventListener('click', goHome);
+    $('btnBackHome').addEventListener('click', goHome);
+    document.querySelectorAll('.skill-card').forEach((c) => c.addEventListener('click', () => {
+      if (c.classList.contains('disabled')) return;
+      if (c.dataset.skill === 'winner') { goWizard(); gotoStep(1); }
+    }));
+    bindFileInput();
+    $('btnRun').addEventListener('click', runEngine);
+    $('btnReRender').addEventListener('click', () => { state.fontSize = +$('fontSize').value || 22; state.padding = +$('padding').value || 12; renderCanvas(); });
+    $('btnDownloadPng').addEventListener('click', downloadPng);
+    document.querySelectorAll('[data-next]').forEach((b) => b.addEventListener('click', () => {
+      const n = +b.dataset.next;
+      if (n === 5) detectPuer();
+      if (n === 6) buildSummary();
+      gotoStep(n);
+    }));
+    document.querySelectorAll('[data-prev]').forEach((b) => b.addEventListener('click', () => gotoStep(+b.dataset.prev)));
+    // 截图
+    const sdz = $('shotDropzone'); const sIn = $('screenshotInput');
+    sdz.addEventListener('click', () => sIn.click());
+    sIn.addEventListener('change', () => { if (sIn.files[0]) $('recogStatus').textContent = '已选截图，点「识别截图」'; });
+    $('btnRecognize').addEventListener('click', recognizeShot);
+    // 步骤5→6 已在 data-next 处理；步骤6 创建
+    $('btnCreate').addEventListener('click', createGroupMessage);
+    // 步骤项点击跳转（仅允许回到已完成步）
+    document.querySelectorAll('.step-item').forEach((it) => it.addEventListener('click', () => { const s = +it.dataset.step; if (s <= (state._step || 1)) gotoStep(s); }));
+    bindSettings();
+  }
+
+  // ----------------------------- 本地统计展示 -----------------------------
+  async function renderStats() {
+    const el = $('localStat');
+    if (!el) return;
+    if (Store.getMode() === 'cloud') {
+      const s = await Store.getStats();
+      if (s) {
+        el.innerHTML = `云端累计使用 <b>${s.total}</b> 次 · 独立用户 <b>${s.users}</b> 人`;
+        return;
+      }
+    }
+    const arr = Store.getUsage();
+    if (!arr.length) {
+      el.innerHTML = '本机累计使用 <b>0</b> 次 · 本地模式（数据仅存此浏览器）';
+      return;
+    }
+    const runs = arr.filter((r) => r.step === 'run').length;
+    const creates = arr.filter((r) => r.step === 'create').length;
+    el.innerHTML = `本机累计使用 <b>${arr.length}</b> 次（运行 ${runs} · 建任务 ${creates}）· 本地模式（数据仅存此浏览器）`;
+  }
+
+  // ----------------------------- 启动 -----------------------------
+  document.addEventListener('DOMContentLoaded', async () => {
+    Store.init();
+    setBanner();
+    renderStats();
+    state.key = await Store.getKey();
+    $('keyStatus').textContent = state.key ? '已绑定 SCRM KEY' : '未绑定 SCRM KEY';
+    $('date').value = new Date().toISOString().slice(0, 10);
+    $('btnRun').disabled = true;
+    bindAll();
+  });
+})();
+
+</script>
+</body>
+</html>
