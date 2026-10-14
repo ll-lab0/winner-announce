@@ -258,6 +258,7 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
           <textarea id="copyText" style="min-height:200px"></textarea>
         </div>
         <div class="nav-row">
+          <button class="btn ghost" id="btnAiCopy">✨ AI 优化文案</button>
           <button class="btn ghost" data-prev="2">← 上一步</button>
           <button class="btn" data-next="4">文案已确认，下一步 →</button>
         </div>
@@ -317,11 +318,24 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
   <!-- 设置弹层 -->
   <div class="modal-mask" id="settingsModal">
     <div class="modal">
-      <h3>绑定我的微盛 SCRM KEY</h3>
-      <p style="color:var(--muted);font-size:13px;margin-top:0">每个使用者使用自己的 KEY，平台不共用、不暴露他人的凭证。</p>
+      <h3>绑定我的凭证</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:0">每个使用者使用自己的 KEY，平台不共用、不暴露他人的凭证。LLM 走你自己的 OpenAI 兼容端点，密钥仅存本浏览器。</p>
       <div class="field">
-        <label>SCRM APP KEY</label>
+        <label>SCRM APP KEY（群发必填）</label>
         <input type="text" id="scrmKey" placeholder="粘贴你的微盛开放平台 APP KEY" />
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:14px 0" />
+      <div class="field">
+        <label>LLM 端点（选填 · OpenAI 兼容）</label>
+        <input type="text" id="llmBase" placeholder="https://api.openai.com/v1" />
+      </div>
+      <div class="field">
+        <label>LLM API KEY</label>
+        <input type="text" id="llmKey" placeholder="sk-... 或兼容端点 key" />
+      </div>
+      <div class="field">
+        <label>模型名</label>
+        <input type="text" id="llmModel" placeholder="gpt-4o-mini / deepseek-chat / 你的模型" />
       </div>
       <div class="actions">
         <button class="btn ghost" id="btnCloseSettings">取消</button>
@@ -753,38 +767,40 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
       arr.push(row);
       localStorage.setItem(LS_USAGE, JSON.stringify(arr));
     }
-    // 截图识别（仅云端免密钥 LLM 支持）
+    // 截图识别：优先用户自有 OpenAI 兼容 LLM；若部署在 WB 云（含 cloud.llm）则回退 WB 云
     async function visionRecognize(dataUrl) {
-      if (mode !== 'cloud' || !cloud) {
-        return { ok: false, reason: 'local', msg: '本地开发模式不支持截图识别，请直接文字填写（激活 WB 云服务后可用）。' };
+      const cfg = getLLMConfig();
+      if (cfg && cfg.base && cfg.key) {
+        const r = await callLLM([
+          { role: 'system', content: '你是表单识别助手。从截图中提取：执行员工部门、执行员工姓名、标签列表（含排除项）。仅输出 JSON：{dept,name,tags:[{name,exclude}]}。' },
+          { role: 'user', content: [{ type: 'image_url', image_url: { url: dataUrl } }] },
+        ], { json: true });
+        if (!r.ok) return { ok: false, reason: 'llm', msg: r.msg };
+        try { return { ok: true, data: JSON.parse(r.content) }; }
+        catch (e) { return { ok: false, reason: 'parse', msg: 'LLM 返回无法解析为 JSON：' + r.content.slice(0, 200) }; }
       }
-      try {
-        // 1) 拉模型列表，挑 Hy3（WB 默认模型），禁用模型不选；禁止硬编码 model id
-        const models = await cloud.llm.models.list();
-        const list = models || [];
-        let model = list.find((m) => /hy3/i.test((m.id || m.name || '') + '') && m.disabled !== true)
-                || list.find((m) => m.disabled !== true);
-        if (!model) {
-          return { ok: false, reason: 'nomodel', msg: '当前应用无可用模型，请在 WB 云端管理开启 LLM。' };
-        }
-        // 2) 流式调用（cloud-service 仅支持 stream:true，且必须带 system 消息）
-        let answer = '';
-        for await (const chunk of cloud.llm.chat.completions.create({
-          model: model.id,
-          messages: [
-            { role: 'system', content: '你是表单识别助手。从截图中提取：执行员工部门、执行员工姓名、标签列表（含排除项）。仅输出 JSON：{dept,name,tags:[{name,exclude}]}。' },
-            { role: 'user', content: [{ type: 'image_url', image_url: { url: dataUrl } }] },
-          ],
-          stream: true,
-          response_format: { type: 'json_object' },
-        })) {
-          const delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
-          if (delta && delta.content) answer += delta.content;
-        }
-        return { ok: true, data: JSON.parse(answer) };
-      } catch (e) {
-        return { ok: false, reason: 'err', msg: '识别失败：' + (e && e.message ? e.message : String(e)) };
+      if (mode === 'cloud' && cloud) {
+        // WB 云路径（仅 WB 发布版可用）
+        try {
+          const models = await cloud.llm.models.list();
+          const list = models || [];
+          let model = list.find((m) => /hy3/i.test((m.id || m.name || '') + '') && m.disabled !== true)
+                  || list.find((m) => m.disabled !== true);
+          if (!model) return { ok: false, reason: 'nomodel', msg: '当前应用无可用模型，请在 WB 云端管理开启 LLM。' };
+          let answer = '';
+          for await (const chunk of cloud.llm.chat.completions.create({
+            model: model.id, messages: [
+              { role: 'system', content: '你是表单识别助手。从截图中提取：执行员工部门、执行员工姓名、标签列表（含排除项）。仅输出 JSON：{dept,name,tags:[{name,exclude}]}。' },
+              { role: 'user', content: [{ type: 'image_url', image_url: { url: dataUrl } }] },
+            ], stream: true, response_format: { type: 'json_object' },
+          })) {
+            const delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
+            if (delta && delta.content) answer += delta.content;
+          }
+          return { ok: true, data: JSON.parse(answer) };
+        } catch (e) { return { ok: false, reason: 'err', msg: '识别失败：' + (e && e.message ? e.message : String(e)) }; }
       }
+      return { ok: false, reason: 'llm', msg: '未配置 LLM（在右上角「设置」里填 LLM 端点与 KEY 后即可使用截图识别）。' };
     }
 
     return {
@@ -804,20 +820,50 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
     };
   })();
 
+  // ----------------------------- LLM（用户自有 OpenAI 兼容端点） -----------------------------
+  // 思考层借平台：用户自备 OpenAI 兼容端点 + KEY，密钥仅存本浏览器（执行层自己握住）。
+  const LS_LLM = 'winner.llmConfig'; // {base, key, model}
+  function getLLMConfig() {
+    try { return JSON.parse(localStorage.getItem(LS_LLM) || 'null'); } catch (e) { return null; }
+  }
+  async function callLLM(messages, opts) {
+    const cfg = getLLMConfig();
+    if (!cfg || !cfg.base || !cfg.key) {
+      return { ok: false, msg: '未配置 LLM（右上角「设置」填写 LLM 端点与 KEY）' };
+    }
+    const body = { model: cfg.model || 'gpt-4o-mini', messages, stream: false };
+    if (opts && opts.json) body.response_format = { type: 'json_object' };
+    try {
+      const res = await fetch(cfg.base.replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.key },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { const t = await res.text(); return { ok: false, msg: 'LLM 调用失败 ' + res.status + '：' + t.slice(0, 200) }; }
+      const j = await res.json();
+      const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+      return { ok: true, content };
+    } catch (e) {
+      return { ok: false, msg: 'LLM 调用异常：' + (e && e.message ? e.message : String(e)) + '（多为浏览器跨域 CORS 限制；可换支持 CORS 的端点，或用 Supabase Edge 代理）' };
+    }
+  }
+
   // ----------------------------- DOM 工具 -----------------------------
   const $ = (id) => document.getElementById(id);
   function show(el) { el.classList.remove('hidden'); }
   function hide(el) { el.classList.add('hidden'); }
   function setBanner() {
     const b = $('modeBanner');
+    const cfg = getLLMConfig();
+    const llmTxt = (cfg && cfg.base && cfg.key) ? ' · LLM 已连接' : '';
     if (Store.getMode() === 'cloud') {
       b.className = 'mode-banner cloud';
-      b.textContent = Store.getBackend() === 'supabase'
-        ? '云端模式：已连接 Supabase，使用统计（次数 / 人数）安全存于云端、跨设备共享。'
-        : '云服务模式：已连接 WB 云服务，KEY 与使用记录安全存于云端（按用户隔离）。';
+      b.textContent = (Store.getBackend() === 'supabase'
+        ? '云端模式：已连接 Supabase，使用统计安全存于云端、跨设备共享。'
+        : '云服务模式：已连接 WB 云服务，KEY 与使用记录安全存于云端（按用户隔离）。') + llmTxt;
     } else {
       b.className = 'mode-banner';
-      b.textContent = '本地开发模式：未连接云端，KEY 与使用记录仅存于本浏览器。填入 Supabase 配置后自动切换云端。';
+      b.textContent = '本地开发模式：未连接云端，KEY 与使用记录仅存于本浏览器。填入 Supabase 配置后自动切换云端。' + llmTxt;
     }
   }
 
@@ -905,6 +951,21 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
       a.download = `${state.region}_${state.activity}_${state.date}_打码公示图.png`;
       a.click();
     });
+  }
+
+  // ----------------------------- 步骤 3：AI 优化文案 -----------------------------
+  async function aiOptimizeCopy() {
+    const cur = $('copyText').value.trim();
+    if (!cur) { alert('请先运行引擎生成文案'); return; }
+    const btn = $('btnAiCopy');
+    btn.disabled = true; const old = btn.textContent; btn.textContent = '✨ 优化中…';
+    const r = await callLLM([
+      { role: 'system', content: '你是烟草行业活动通知文案助手。在不改变事实（奖项、门店、日期、金额、人名）的前提下，把给定通知文案写得更通顺、更有温度、更适合零售户阅读。只输出优化后的文案正文，不要任何解释，不要用引号包裹。' },
+      { role: 'user', content: cur },
+    ]);
+    btn.disabled = false; btn.textContent = old;
+    if (!r.ok) { alert(r.msg); return; }
+    $('copyText').value = r.content.trim();
   }
 
   // ----------------------------- 步骤 4：配置 + 截图识别 -----------------------------
@@ -1015,13 +1076,21 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
 
   // ----------------------------- 设置面板 -----------------------------
   function bindSettings() {
-    $('btnOpenSettings').addEventListener('click', () => { $('scrmKey').value = state.key; $('settingsModal').classList.add('show'); });
+    $('btnOpenSettings').addEventListener('click', () => {
+      $('scrmKey').value = state.key;
+      const cfg = getLLMConfig() || {};
+      $('llmBase').value = cfg.base || ''; $('llmKey').value = cfg.key || ''; $('llmModel').value = cfg.model || '';
+      $('settingsModal').classList.add('show');
+    });
     $('btnCloseSettings').addEventListener('click', () => $('settingsModal').classList.remove('show'));
     $('btnSaveKey').addEventListener('click', async () => {
       const k = $('scrmKey').value.trim();
       await Store.saveKey(k);
+      const cfg = { base: $('llmBase').value.trim(), key: $('llmKey').value.trim(), model: $('llmModel').value.trim() };
+      localStorage.setItem(LS_LLM, JSON.stringify(cfg));
       $('keyStatus').textContent = k ? '已绑定 SCRM KEY' : '未绑定 SCRM KEY';
       $('settingsModal').classList.remove('show');
+      setBanner();
     });
   }
 
@@ -1050,6 +1119,7 @@ canvas#previewCanvas { max-width: 100%; height: auto; border: 1px solid #eee; }
     sdz.addEventListener('click', () => sIn.click());
     sIn.addEventListener('change', () => { if (sIn.files[0]) $('recogStatus').textContent = '已选截图，点「识别截图」'; });
     $('btnRecognize').addEventListener('click', recognizeShot);
+    $('btnAiCopy').addEventListener('click', aiOptimizeCopy);
     // 步骤5→6 已在 data-next 处理；步骤6 创建
     $('btnCreate').addEventListener('click', createGroupMessage);
     // 步骤项点击跳转（仅允许回到已完成步）
